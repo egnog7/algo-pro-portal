@@ -101,7 +101,18 @@ export type OptimizationResultDTO = {
   status: "queued" | "finished" | string;
   results?: any;
 };
+export type ApplyPresetResp = {
+  ok: boolean;
+  pair: string;
+  presetVer: string;
+};
 
+export type RunOptResp = {
+  job_id: string;
+  status: string;
+};
+
+export type OptResult = OptimizationResultDTO;
 /* =========================
    License (secure)
 ========================= */
