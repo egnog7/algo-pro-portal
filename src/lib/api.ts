@@ -222,11 +222,10 @@ export async function applyPreset(
 export async function runOptimization(
   licenseKey: string,
   pair: string,
-  objective: string = "pf",
-  token?: string | null
-): Promise<{ job_id: string; status: string }> {
-  // backend: POST /portal/optimization/run
-  return postJSON<{ job_id: string; status: string }>(
+  token?: string | null,
+  objective: string = "pf"
+): Promise<RunOptResp> {
+  return postJSON<RunOptResp>(
     "/portal/optimization/run",
     {
       license_key: licenseKey,
@@ -240,14 +239,12 @@ export async function runOptimization(
 export async function getOptimizationResult(
   jobId: string,
   token?: string | null
-): Promise<OptimizationResultDTO> {
-  // backend: GET /portal/optimization/result/{job_id}
-  return getJSON<OptimizationResultDTO>(
+): Promise<OptResult> {
+  return getJSON<OptResult>(
     `/portal/optimization/result/${encodeURIComponent(jobId)}`,
     { token }
   );
 }
-
 /* =========================
    Download
 ========================= */
