@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createCheckout } from "@/lib/api";
-import { useAuth, useUser } from "@clerk/nextjs";
 
 type Plan = {
   id: string;
@@ -52,9 +51,7 @@ const PLANS: Plan[] = [
   },
 ];
 
-export default function CheckoutClient() {  const { getToken } = useAuth();
-  const { user } = useUser();
-
+export default function CheckoutClient() {
   const [email, setEmail] = useState("");
   const [selected, setSelected] = useState<Plan | null>(PLANS[1]);
   const [busy, setBusy] = useState(false);
@@ -63,12 +60,7 @@ export default function CheckoutClient() {  const { getToken } = useAuth();
   async function onSubscribe() {
     if (!selected) return;
 
-    const fallbackEmail =
-      user?.primaryEmailAddress?.emailAddress ||
-      user?.emailAddresses?.[0]?.emailAddress ||
-      "";
-
-    const finalEmail = (email.trim() || fallbackEmail.trim()).trim();
+    const finalEmail = email.trim();
 
     if (!finalEmail) {
       setError("Please enter your email.");
@@ -79,22 +71,20 @@ export default function CheckoutClient() {  const { getToken } = useAuth();
     setError(null);
 
     try {
-      const token = await getToken();
+      const { checkout_url } = await createCheckout(
+        finalEmail,
+        selected.priceId,
+        null,
+        null
+      );
 
-      if (!token) {
-        throw new Error("Missing auth token. Please sign in again.");
-      }
-
-    const { checkout_url } = await createCheckout(
-      finalEmail,
-      selected.priceId,
-      null,
-      null
-    );
       window.location.href = checkout_url;
     } catch (e: any) {
       console.error(e);
-      setError(e?.message ?? "Failed to create checkout.");
+
+      setError(
+        e?.message ?? "Failed to create checkout."
+      );
     } finally {
       setBusy(false);
     }
@@ -103,7 +93,9 @@ export default function CheckoutClient() {  const { getToken } = useAuth();
   return (
     <main className="min-h-screen bg-gray-50 flex justify-center p-6">
       <div className="w-full max-w-3xl bg-white rounded-2xl shadow p-6 md:p-8 space-y-6">
-        <h1 className="text-2xl font-semibold">Subscribe to Algo Pro</h1>
+        <h1 className="text-2xl font-semibold">
+          Subscribe to Algo Pro
+        </h1>
 
         <p className="text-sm text-gray-600">
           Enter your email, pick a plan, and we&apos;ll send your
@@ -120,10 +112,7 @@ export default function CheckoutClient() {  const { getToken } = useAuth();
             className="w-full border rounded px-3 py-2 text-sm"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder={
-              user?.primaryEmailAddress?.emailAddress ||
-              "you@example.com"
-            }
+            placeholder="you@example.com"
           />
         </div>
 
@@ -144,7 +133,9 @@ export default function CheckoutClient() {  const { getToken } = useAuth();
                 }
               >
                 <div className="flex items-baseline justify-between">
-                  <span className="font-semibold">{plan.name}</span>
+                  <span className="font-semibold">
+                    {plan.name}
+                  </span>
 
                   <span className="text-xs opacity-80">
                     {plan.priceLabel}

@@ -159,8 +159,7 @@ export async function createCheckout(
       email,
       price_id: priceId,
       clerk_user_id: clerkUserId ?? "",
-    },
-    { token }
+    },  
   );
 }
 
