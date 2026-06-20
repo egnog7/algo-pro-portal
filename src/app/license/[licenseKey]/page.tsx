@@ -2,11 +2,14 @@
 import LicenseEditor from "./ui/LicenseEditor";
 import ManagePortalButton from "./ui/ManagePortalButton";
 import ResendLicenseButton from "./ui/ResendLicenseButton";
+import ModulesClient from "./ui/ModulesClient";
+
 import { fetchLicense } from "@/lib/api.server";
+import { listModules } from "@/lib/api";
 import type { LicenseDTO } from "@/lib/api.types";
+import type { ModulesResponse } from "@/lib/api";
 
 type PageProps = {
-  // Next 16: params is a Promise
   params: Promise<{ licenseKey: string }>;
 };
 
@@ -14,20 +17,22 @@ export default async function LicensePage({ params }: PageProps) {
   const { licenseKey } = await params;
 
   let data: LicenseDTO | null = null;
+  let modulesData: ModulesResponse | null = null;
   let error: "NOT_FOUND" | "GENERIC" | null = null;
 
   try {
     data = await fetchLicense(licenseKey);
+    modulesData = await listModules(licenseKey);
   } catch (e: any) {
     const msg = e?.message || "";
-    if (msg === "LICENSE_NOT_FOUND") {
+
+    if (msg === "LICENSE_NOT_FOUND" || msg.startsWith("404")) {
       error = "NOT_FOUND";
     } else {
       error = "GENERIC";
     }
   }
 
-  // --- Error state UI ---
   if (error) {
     return (
       <main className="min-h-screen bg-gray-50 p-6">
@@ -79,11 +84,9 @@ export default async function LicensePage({ params }: PageProps) {
     );
   }
 
-  // --- Normal happy path UI ---
   if (!data) return null;
 
-  // Suspended / expired logic
-  const todayISO = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const todayISO = new Date().toISOString().slice(0, 10);
   const isExpired = !!data.expires_at && data.expires_at < todayISO;
   const isSuspended = (data.status || "").toLowerCase() === "suspended";
   const isInactive = isSuspended || isExpired;
@@ -91,7 +94,6 @@ export default async function LicensePage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-3xl mx-auto space-y-6">
-        {/* Header / summary */}
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-semibold">
@@ -104,11 +106,15 @@ export default async function LicensePage({ params }: PageProps) {
           </div>
 
           <div className="flex flex-col items-end gap-2">
-            {/* Keep this available even if suspended/expired */}
             <ManagePortalButton licenseKey={licenseKey} />
 
             <div className="flex gap-2 text-xs text-gray-600">
               <span>Max pairs: {data.max_pairs}</span>
+
+              {modulesData && (
+                <span>Max modules: {modulesData.max_modules}</span>
+              )}
+
               {data.priority_support && (
                 <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200">
                   Priority support
@@ -118,7 +124,6 @@ export default async function LicensePage({ params }: PageProps) {
           </div>
         </header>
 
-        {/* Suspended / Expired banners */}
         {isSuspended && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4">
             <div className="font-medium text-red-800">License suspended</div>
@@ -140,7 +145,6 @@ export default async function LicensePage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Top tab-ish nav (Overview / Pairs / Presets / Download) */}
         <nav className="border-b text-sm flex gap-4">
           <span className="border-b-2 border-black pb-2 font-medium">
             Overview
@@ -182,8 +186,7 @@ export default async function LicensePage({ params }: PageProps) {
           )}
         </nav>
 
-        {/* Overview content */}
-        <section className="bg-white rounded-xl shadow p-4 space-y-4">
+        <section className="bg-white rounded-xl shadow p-4 space-y-6">
           <div className="space-y-1">
             <h2 className="text-sm font-medium">License summary</h2>
             <p className="text-xs text-gray-600">
@@ -191,13 +194,27 @@ export default async function LicensePage({ params }: PageProps) {
               {data.expires_at}
             </p>
           </div>
+
           <ResendLicenseButton licenseKey={licenseKey} />
 
-          <div className="space-y-2">
+          {modulesData && (
+            <div className="space-y-3 border-t pt-4">
+              <div>
+                <h3 className="text-sm font-medium">Installed modules</h3>
+                <p className="text-xs text-gray-600">
+                  {modulesData.enabled_modules || "No modules enabled"} · Max
+                  modules: {modulesData.max_modules}
+                </p>
+              </div>
+
+              <ModulesClient modules={modulesData.modules} />
+            </div>
+          )}
+
+          <div className="space-y-2 border-t pt-4">
             <h3 className="text-sm font-medium">Pairs enabled</h3>
             <p className="text-xs text-gray-600">Max pairs: {data.max_pairs}</p>
 
-            {/* Disable pair edits if inactive */}
             {isInactive ? (
               <div className="rounded-lg border bg-gray-50 p-3 text-sm text-gray-600">
                 Pair management is disabled while this license is{" "}
@@ -214,10 +231,10 @@ export default async function LicensePage({ params }: PageProps) {
             )}
           </div>
 
-          <div id="download" className="pt-2 border-t mt-4">
+          <div id="download" className="pt-4 border-t">
             <h3 className="text-sm font-medium mb-1">Download EA</h3>
             <p className="text-xs text-gray-600 mb-2">
-              Use the button below to download the latest SubscribedAgent EA and
+              Use the button below to download the latest Algo Pro Utility EA and
               attach it to your MT5 charts.
             </p>
 

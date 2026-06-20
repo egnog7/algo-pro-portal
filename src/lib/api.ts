@@ -71,6 +71,24 @@ export async function postJSON<T>(
 /* =========================
    Types (shared DTOs)
 ========================= */
+export type ModuleInfo = {
+  id: string;
+  name: string;
+  version: string;
+  category: string;
+  description: string;
+  status: string;
+  configurable: boolean;
+  enabled: boolean;
+};
+
+export type ModulesResponse = {
+  license_key: string;
+  plan: string;
+  max_modules: number;
+  enabled_modules: string;
+  modules: ModuleInfo[];
+};
 
 export type LicenseDTO = {
   plan: string;
@@ -256,5 +274,16 @@ export async function getDownloadRedirect(
   return getJSON<{ url: string }>(
     `/portal/download?license_key=${encodeURIComponent(licenseKey)}`,
     { token }
+  );
+}
+
+// ============== modules ========== //
+export async function listModules(
+  licenseKey: string
+): Promise<ModulesResponse> {
+  return getJSON<ModulesResponse>(
+    `/portal/modules?license_key=${encodeURIComponent(
+      licenseKey
+    )}`
   );
 }
